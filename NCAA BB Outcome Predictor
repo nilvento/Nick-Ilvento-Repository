@@ -1,0 +1,97 @@
+library(glmnet)
+MARCH.2024 <- read.csv("C:/Users/nicki/Downloads/MARCH.2024.csv")
+View(MARCH.2024)
+
+
+MARCH.2024 <- MARCH.2024[, c(2, 1, 3:ncol(MARCH.2024))]
+
+summary(glm(Rk~.-School, data=MARCH.2024))
+
+model_glm <- glm(Rk ~ SOS +Conf.L  + AwayW  , data = MARCH.2024 )
+summary(model_glm)
+
+
+MARCH.2024$Pred.Rank <- predict(model_glm)
+MARCH.2024$Rank_delta <- MARCH.2024$Rk - MARCH.2024$Pred.Rank
+
+
+
+model_glm_2 <- glm(OVR.W ~ AwayW + Pace + ORtg +FTr	+ X3PAr+	TS. +TRB.	+AST.+	STL.+	BLK.+	eFG. +	TOV. +	ORB.+	FT.FGA, data = MARCH.2024)
+summary(model_glm_2)
+
+
+MARCH.2024$Pred.W <- predict(model_glm_2)
+MARCH.2024$W_delta <- MARCH.2024$OVR.W - MARCH.2024$Pred.W
+
+
+MARCH.2024$Score <- MARCH.2024$Pred.W - MARCH.2024$Pred.Rank
+
+
+#DAD
+
+
+glm_3 <- glm(Rk ~ AwayW + Pace + ORtg +FTr	+ X3PAr+	TS. +TRB.	+AST.+	STL.+	BLK.+	eFG. +	TOV. +	ORB.+	FT.FGA, data = MARCH.2024)
+summary(glm_3)
+
+
+#Points
+
+MARCH.2024$PPG <- MARCH.2024$Points / MARCH.2024$G
+MARCH.2024$OPPG <- MARCH.2024$Opp.Points / MARCH.2024$G
+
+glm_model <- lm(PPG ~ OPPG + Pace + ORtg +FTr	+	TS. +TRB.	+	eFG. +	FT.FGA, data = MARCH.2024)
+summary(glm_model)
+
+#MATHCHUP
+
+school1 <- "Oakland"
+school2 <- "NC State"
+
+team1_data <- MARCH.2024[MARCH.2024$School == school1, ]
+team2_data <- MARCH.2024[MARCH.2024$School == school2, ]
+team_data <- rbind(team1_data, team2_data)
+
+
+#glm_model <- lm(PPG ~  Score + OPPG + ORtg +FTr	+	TS.	+	eFG. +	FT.FGA, data = MARCH.2024)
+
+glm_model <- lm(PPG  ~  Pred.Rank + OPPG + Score, data = MARCH.2024)
+summary(glm_model)
+
+
+
+glm_model <- lm(2.5*PPG  ~ Score , data = MARCH.2024)
+summary(glm_model)
+
+
+predicted_outcome <- predict(glm_model, data = MARCH.2024)
+MARCH.2024$predicted_ppg <- predicted_outcome
+View(MARCH.2024)
+
+school1 <- "Connecticut"
+school2 <- "Alabama"
+
+predicted_score_school1 <- MARCH.2024$predicted_ppg[MARCH.2024$School == school1]
+predicted_score_school2 <- MARCH.2024$predicted_ppg[MARCH.2024$School == school2]
+
+
+cat(ifelse(predicted_score_school1 > predicted_score_school2, paste(school1, "is predicted to win the matchup by", round(predicted_score_school1 - predicted_score_school2, 2), "points."), 
+           ifelse(predicted_score_school1 < predicted_score_school2, paste(school2, "is predicted to win the matchup by", round(predicted_score_school2 - predicted_score_school1, 2), "points."), 
+                  "The matchup is predicted to be a tie.")))
+
+print(paste("Total:", round((MARCH.2024$PPG_pred[MARCH.2024$School == school1] + MARCH.2024$PPG_pred[MARCH.2024$School == school2]))-14,2))
+
+
+
+MARCH.2024$Pace_sqr <- (MARCH.2024$Pace)^2
+
+over.under <- lm(PPG ~ Pace_sqr + TS. + ORB. + Score, data = MARCH.2024)
+summary(over.under)
+
+MARCH.2024$PPG_pred <- predict(over.under, data = MARCH.2024)
+
+
+predict_total_1 <- MARCH.2024$PPG_pred[MARCH.2024$School == school1]
+predict_total_2 <- MARCH.2024$PPG_pred[MARCH.2024$School == school2]
+
+print(paste("Total:", round(MARCH.2024$PPG_pred[MARCH.2024$School == school1] + MARCH.2024$PPG_pred[MARCH.2024$School == school2]),2))
+print(paste("Final:", MARCH.2024$PPG_pred[MARCH.2024$School == school1], "to", MARCH.2024$PPG_pred[MARCH.2024$School == school2]))
